@@ -58,15 +58,6 @@ password-generator/
 
 ## 📸 Preview
 
-> Add a screenshot of your project here.
-
-Example:
-
-```
-assets/screenshot.png
-```
-
----
 
 ## 🚀 Live Demo
 
