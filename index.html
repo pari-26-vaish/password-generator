@@ -1,107 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Password Generator</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<button id="themeToggle" class="theme-toggle" title="Toggle light/dark mode" aria-label="Toggle theme">🌙</button>
+<div id="palette"></div>
 
-<div class="container">
-    <div class="banner">✨ Create strong passwords easily — fast, free, and secure.</div>
-
-    <h1>Password Generator</h1>
-    <p class="subtitle">Create strong, random passwords instantly</p>
-
-    <div class="tabs" role="tablist">
-        <button class="tab-btn active" data-mode="random">Random</button>
-        <button class="tab-btn" data-mode="pronounceable">Pronounceable</button>
-        <button class="tab-btn" data-mode="passphrase">Passphrase</button>
-    </div>
-
-    <div class="output">
-        <input type="password" id="passwordField" readonly aria-label="Generated password">
-        <div class="output-actions">
-            <button id="toggleVisibility" class="icon-btn" title="Show/Hide password">👁️</button>
-            <button id="regenBtn" class="icon-btn" title="Regenerate password">🎲</button>
-            <button id="qrBtn" class="icon-btn" title="Show QR code">▦</button>
-            <button id="copyBtn" title="Copy to clipboard">Copy</button>
-        </div>
-    </div>
-
-    <div id="qrPanel" class="qr-panel hidden">
-        <div id="qrCode"></div>
-        <button id="closeQr" class="link-btn">Close</button>
-    </div>
-
-    <div class="strength">
-        <div class="strength-track">
-            <div class="strength-bar" id="strengthBar"></div>
-        </div>
-        <span id="strengthLabel">Weak</span>
-    </div>
-    <div class="meta-row">
-        <span id="crackTime">Crack time: —</span>
-        <span id="breakdown"></span>
-    </div>
-
-    <div id="randomSettings" class="mode-panel">
-        <div class="setting">
-            <label for="length">Password Length: <span id="lengthValue">12</span></label>
-            <input type="range" id="length" min="4" max="32" value="12">
-        </div>
-
-        <div class="setting checkboxes">
-            <label><input type="checkbox" id="uppercase" checked> Uppercase (A-Z)</label>
-            <label><input type="checkbox" id="lowercase" checked> Lowercase (a-z)</label>
-            <label><input type="checkbox" id="numbers" checked> Numbers (0-9)</label>
-            <label><input type="checkbox" id="symbols"> Symbols (!@#$%)</label>
-        </div>
-    </div>
-
-    <div id="pronounceableSettings" class="mode-panel hidden">
-        <div class="setting">
-            <label for="syllables">Syllables: <span id="syllablesValue">4</span></label>
-            <input type="range" id="syllables" min="2" max="8" value="4">
-        </div>
-        <div class="setting checkboxes">
-            <label><input type="checkbox" id="pronNumber" checked> Add a number</label>
-            <label><input type="checkbox" id="pronSymbol"> Add a symbol</label>
-            <label><input type="checkbox" id="pronCapitalize" checked> Capitalize first letter</label>
-        </div>
-    </div>
-
-    <div id="passphraseSettings" class="mode-panel hidden">
-        <div class="setting">
-            <label for="wordCount">Number of words: <span id="wordCountValue">4</span></label>
-            <input type="range" id="wordCount" min="3" max="8" value="4">
-        </div>
-        <div class="setting">
-            <label for="separator">Separator</label>
-            <select id="separator">
-                <option value="-">Hyphen ( - )</option>
-                <option value=".">Dot ( . )</option>
-                <option value="_">Underscore ( _ )</option>
-                <option value=" ">Space</option>
-            </select>
-        </div>
-        <div class="setting checkboxes">
-            <label><input type="checkbox" id="phraseCapitalize" checked> Capitalize each word</label>
-            <label><input type="checkbox" id="phraseNumber" checked> Add a number</label>
-        </div>
-    </div>
-
-    <div class="setting row-check">
-        <label><input type="checkbox" id="autoCopy"> Auto-copy to clipboard on generate</label>
-    </div>
-
-    <button id="generateBtn">Generate Password</button>
+<div id="controls">
+    <button id="generate-btn">Generate (Space)</button>
+    <button id="download-btn">Download PNG</button>
+    <button id="save-btn">Save Favorite</button>
+    <button id="share-btn">Share Palette</button>
+    <button id="theme-btn">Toggle Theme</button>
 </div>
 
-<div id="toast" class="toast">Password copied to clipboard</div>
+<div id="favorites"></div>
+
+<div id="gradient-panel">
+    <h3>Gradient Generator</h3>
+    <div class="gradient-controls">
+        <select id="grad-color-a"></select>
+        <select id="grad-color-b"></select>
+        <button id="copy-gradient-btn">Copy CSS</button>
+    </div>
+    <div id="gradient-preview"></div>
+    <code id="gradient-css-output"></code>
+</div>
 
 <script src="script.js"></script>
 </body>

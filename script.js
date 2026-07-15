@@ -1,288 +1,254 @@
-const els = {
-  passwordField: document.getElementById('passwordField'),
-  lengthSlider: document.getElementById('length'),
-  lengthValue: document.getElementById('lengthValue'),
-  generateBtn: document.getElementById('generateBtn'),
-  regenBtn: document.getElementById('regenBtn'),
-  copyBtn: document.getElementById('copyBtn'),
-  strengthBar: document.getElementById('strengthBar'),
-  strengthLabel: document.getElementById('strengthLabel'),
-  crackTime: document.getElementById('crackTime'),
-  breakdown: document.getElementById('breakdown'),
-  themeToggle: document.getElementById('themeToggle'),
-  toggleVisibility: document.getElementById('toggleVisibility'),
-  toast: document.getElementById('toast'),
-  qrBtn: document.getElementById('qrBtn'),
-  qrPanel: document.getElementById('qrPanel'),
-  qrCode: document.getElementById('qrCode'),
-  closeQr: document.getElementById('closeQr'),
-  autoCopy: document.getElementById('autoCopy'),
-};
+const paletteEl = document.getElementById('palette');
+const favoritesEl = document.getElementById('favorites');
+const gradA = document.getElementById('grad-color-a');
+const gradB = document.getElementById('grad-color-b');
+const gradPreview = document.getElementById('gradient-preview');
+const gradCssOutput = document.getElementById('gradient-css-output');
+const numColors = 5;
+let colors = [];
 
-const upperEl = document.getElementById('uppercase');
-const lowerEl = document.getElementById('lowercase');
-const numberEl = document.getElementById('numbers');
-const symbolEl = document.getElementById('symbols');
-
-const syllablesSlider = document.getElementById('syllables');
-const syllablesValue = document.getElementById('syllablesValue');
-const pronNumber = document.getElementById('pronNumber');
-const pronSymbol = document.getElementById('pronSymbol');
-const pronCapitalize = document.getElementById('pronCapitalize');
-
-const wordCountSlider = document.getElementById('wordCount');
-const wordCountValue = document.getElementById('wordCountValue');
-const separatorEl = document.getElementById('separator');
-const phraseCapitalize = document.getElementById('phraseCapitalize');
-const phraseNumber = document.getElementById('phraseNumber');
-
-const tabs = document.querySelectorAll('.tab-btn');
-const panels = {
-  random: document.getElementById('randomSettings'),
-  pronounceable: document.getElementById('pronounceableSettings'),
-  passphrase: document.getElementById('passphraseSettings'),
-};
-
-let currentMode = 'random';
-
-const SETS = {
-  upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-  lower: 'abcdefghijklmnopqrstuvwxyz',
-  numbers: '0123456789',
-  symbols: '!@#$%^&*()_+-=[]{}',
-};
-
-const WORDS = ['apple','breeze','coral','delta','ember','forest','glow','harbor','ivory','jungle',
-  'kite','lemon','maple','nova','opal','pebble','quartz','river','summit','tiger',
-  'umbra','velvet','willow','xenon','yonder','zephyr','amber','birch','cedar','dusk',
-  'echo','frost','grove','haze','indigo','jade','karma','lunar','marsh','noon',
-  'orbit','pine','quiet','rustic','solar','tundra','urban','violet','wave','yield'];
-
-function applyTheme(theme) {
-  document.body.setAttribute('data-theme', theme);
-  els.themeToggle.textContent = theme === 'light' ? '☀️' : '🌙';
-  localStorage.setItem('pg-theme', theme);
-}
-applyTheme(localStorage.getItem('pg-theme') ||
-  (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
-els.themeToggle.addEventListener('click', () => {
-  applyTheme(document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
-});
-
-function saveSettings() {
-  const settings = {
-    mode: currentMode,
-    length: els.lengthSlider.value,
-    upper: upperEl.checked, lower: lowerEl.checked, numbers: numberEl.checked, symbols: symbolEl.checked,
-    syllables: syllablesSlider.value, pronNumber: pronNumber.checked, pronSymbol: pronSymbol.checked, pronCapitalize: pronCapitalize.checked,
-    wordCount: wordCountSlider.value, separator: separatorEl.value, phraseCapitalize: phraseCapitalize.checked, phraseNumber: phraseNumber.checked,
-    autoCopy: els.autoCopy.checked,
-  };
-  localStorage.setItem('pg-settings', JSON.stringify(settings));
+function randomColor() {
+  const hex = Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
+  return '#' + hex;
 }
 
-function loadSettings() {
-  const raw = localStorage.getItem('pg-settings');
-  if (!raw) return;
-  try {
-    const s = JSON.parse(raw);
-    if (s.mode) switchMode(s.mode);
-    if (s.length) { els.lengthSlider.value = s.length; els.lengthValue.textContent = s.length; }
-    upperEl.checked = s.upper ?? true; lowerEl.checked = s.lower ?? true;
-    numberEl.checked = s.numbers ?? true; symbolEl.checked = s.symbols ?? false;
-    if (s.syllables) { syllablesSlider.value = s.syllables; syllablesValue.textContent = s.syllables; }
-    pronNumber.checked = s.pronNumber ?? true; pronSymbol.checked = !!s.pronSymbol; pronCapitalize.checked = s.pronCapitalize ?? true;
-    if (s.wordCount) { wordCountSlider.value = s.wordCount; wordCountValue.textContent = s.wordCount; }
-    if (s.separator) separatorEl.value = s.separator;
-    phraseCapitalize.checked = s.phraseCapitalize ?? true; phraseNumber.checked = s.phraseNumber ?? true;
-    els.autoCopy.checked = !!s.autoCopy;
-  } catch (e) { /* ignore corrupt settings */ }
+// ---------- COLOR CONVERSIONS ----------
+function hexToRgb(hex) {
+  const bigint = parseInt(hex.slice(1), 16);
+  return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
 }
 
-function switchMode(mode) {
-  currentMode = mode;
-  tabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
-  Object.entries(panels).forEach(([key, panel]) => panel.classList.toggle('hidden', key !== mode));
-}
-tabs.forEach(tab => tab.addEventListener('click', () => { switchMode(tab.dataset.mode); generatePassword(); saveSettings(); }));
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
 
-els.lengthSlider.addEventListener('input', () => els.lengthValue.textContent = els.lengthSlider.value);
-syllablesSlider.addEventListener('input', () => syllablesValue.textContent = syllablesSlider.value);
-wordCountSlider.addEventListener('input', () => wordCountValue.textContent = wordCountSlider.value);
-
-const allInputs = [els.lengthSlider, upperEl, lowerEl, numberEl, symbolEl,
-  syllablesSlider, pronNumber, pronSymbol, pronCapitalize,
-  wordCountSlider, separatorEl, phraseCapitalize, phraseNumber, els.autoCopy];
-allInputs.forEach(el => el.addEventListener('change', () => { generatePassword(); saveSettings(); }));
-
-els.toggleVisibility.addEventListener('click', () => {
-  const isHidden = els.passwordField.type === 'password';
-  els.passwordField.type = isHidden ? 'text' : 'password';
-  els.toggleVisibility.textContent = isHidden ? '🙈' : '👁️';
-});
-
-function secureRandomInt(max) {
-  const arr = new Uint32Array(1);
-  crypto.getRandomValues(arr);
-  return arr[0] % max;
-}
-
-function generateRandom() {
-  const length = Number(els.lengthSlider.value);
-  let pools = [];
-  if (upperEl.checked) pools.push(SETS.upper);
-  if (lowerEl.checked) pools.push(SETS.lower);
-  if (numberEl.checked) pools.push(SETS.numbers);
-  if (symbolEl.checked) pools.push(SETS.symbols);
-  if (!pools.length) return null;
-
-  const fullPool = pools.join('');
-  let passwordChars = pools.map(p => p[secureRandomInt(p.length)]);
-  while (passwordChars.length < length) {
-    passwordChars.push(fullPool[secureRandomInt(fullPool.length)]);
-  }
-  for (let i = passwordChars.length - 1; i > 0; i--) {
-    const j = secureRandomInt(i + 1);
-    [passwordChars[i], passwordChars[j]] = [passwordChars[j], passwordChars[i]];
-  }
-  return passwordChars.slice(0, length).join('');
-}
-
-function generatePronounceable() {
-  const consonants = 'bcdfghjklmnpqrstvwxyz';
-  const vowels = 'aeiou';
-  const syllables = Number(syllablesSlider.value);
-  let word = '';
-  for (let i = 0; i < syllables; i++) {
-    word += consonants[secureRandomInt(consonants.length)];
-    word += vowels[secureRandomInt(vowels.length)];
-  }
-  if (pronCapitalize.checked) word = word.charAt(0).toUpperCase() + word.slice(1);
-  if (pronNumber.checked) word += String(secureRandomInt(90) + 10);
-  if (pronSymbol.checked) word += SETS.symbols[secureRandomInt(SETS.symbols.length)];
-  return word;
-}
-
-function generatePassphrase() {
-  const count = Number(wordCountSlider.value);
-  const sep = separatorEl.value;
-  const words = [];
-  for (let i = 0; i < count; i++) {
-    let w = WORDS[secureRandomInt(WORDS.length)];
-    if (phraseCapitalize.checked) w = w.charAt(0).toUpperCase() + w.slice(1);
-    words.push(w);
-  }
-  let phrase = words.join(sep);
-  if (phraseNumber.checked) phrase += sep + String(secureRandomInt(90) + 10);
-  return phrase;
-}
-
-function generatePassword() {
-  let password = null;
-  if (currentMode === 'random') password = generateRandom();
-  else if (currentMode === 'pronounceable') password = generatePronounceable();
-  else password = generatePassphrase();
-
-  if (!password) {
-    els.passwordField.value = '';
-    updateStrength('');
-    showToast('Select at least one character type');
-    return;
-  }
-
-  els.passwordField.value = password;
-  updateStrength(password);
-
-  if (els.autoCopy.checked) {
-    navigator.clipboard.writeText(password).then(() => showToast('Auto-copied to clipboard'));
-  }
-}
-
-function updateStrength(password) {
-  if (!password) {
-    els.strengthBar.style.width = '0%';
-    els.strengthLabel.textContent = '';
-    els.crackTime.textContent = 'Crack time: —';
-    els.breakdown.textContent = '';
-    return;
-  }
-
-  let varietyCount = 0, poolSize = 0;
-  if (/[A-Z]/.test(password)) { varietyCount++; poolSize += 26; }
-  if (/[a-z]/.test(password)) { varietyCount++; poolSize += 26; }
-  if (/[0-9]/.test(password)) { varietyCount++; poolSize += 10; }
-  if (/[^A-Za-z0-9]/.test(password)) { varietyCount++; poolSize += 32; }
-  poolSize = poolSize || 26;
-
-  const score = (password.length >= 12 ? 2 : password.length >= 8 ? 1 : 0) + varietyCount;
-  const percent = Math.min(100, (score / 6) * 100);
-  els.strengthBar.style.width = percent + '%';
-
-  if (score <= 2) { els.strengthBar.style.background = 'var(--weak)'; els.strengthLabel.textContent = 'Weak'; }
-  else if (score <= 4) { els.strengthBar.style.background = 'var(--medium)'; els.strengthLabel.textContent = 'Medium'; }
-  else { els.strengthBar.style.background = 'var(--strong)'; els.strengthLabel.textContent = 'Strong'; }
-
-  const entropy = password.length * Math.log2(poolSize);
-  const guesses = Math.pow(2, entropy) / 2;
-  const seconds = guesses / 1e10;
-  els.crackTime.textContent = 'Crack time: ' + humanizeSeconds(seconds);
-
-  const counts = {
-    Upper: (password.match(/[A-Z]/g) || []).length,
-    Lower: (password.match(/[a-z]/g) || []).length,
-    Num: (password.match(/[0-9]/g) || []).length,
-    Sym: (password.match(/[^A-Za-z0-9]/g) || []).length,
-  };
-  els.breakdown.textContent = Object.entries(counts).filter(([,v]) => v > 0).map(([k,v]) => `${v} ${k}`).join(', ');
-}
-
-function humanizeSeconds(s) {
-  if (s < 1) return 'instantly';
-  const units = [['years', 31536000], ['days', 86400], ['hours', 3600], ['minutes', 60], ['seconds', 1]];
-  for (const [name, secs] of units) {
-    if (s >= secs) {
-      const val = s / secs;
-      return val > 1e6 ? 'centuries' : `${val.toFixed(val < 10 ? 1 : 0)} ${name}`;
+  if (max === min) { h = s = 0; }
+  else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
     }
+    h /= 6;
   }
-  return 'instantly';
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
-let toastTimer;
-function showToast(message) {
-  els.toast.textContent = message;
-  els.toast.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2000);
+// ---------- LOAD FROM SHARE LINK (if present) ----------
+function loadFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const shared = params.get('colors');
+  if (shared) {
+    const hexes = shared.split('-').map(h => '#' + h);
+    colors = hexes.map(hex => ({ hex, locked: false }));
+    return true;
+  }
+  return false;
 }
 
-els.generateBtn.addEventListener('click', generatePassword);
-els.regenBtn.addEventListener('click', () => {
-  els.regenBtn.style.transform = 'rotate(180deg)';
-  setTimeout(() => els.regenBtn.style.transform = 'rotate(0deg)', 300);
-  generatePassword();
-});
-els.copyBtn.addEventListener('click', () => {
-  if (!els.passwordField.value) { showToast('Nothing to copy yet'); return; }
-  navigator.clipboard.writeText(els.passwordField.value).then(() => showToast('Password copied to clipboard'));
-});
+function buildPalette() {
+  if (colors.length === 0) {
+    for (let i = 0; i < numColors; i++) {
+      colors.push({ hex: randomColor(), locked: false });
+    }
+  } else {
+    colors = colors.map(c => c.locked ? c : { hex: randomColor(), locked: false });
+  }
+  renderPalette();
+}
 
-els.qrBtn.addEventListener('click', () => {
-  if (!els.passwordField.value) { showToast('Generate a password first'); return; }
-  els.qrCode.innerHTML = '';
-  new QRCode(els.qrCode, { text: els.passwordField.value, width: 160, height: 160 });
-  els.qrPanel.classList.remove('hidden');
-});
-els.closeQr.addEventListener('click', () => els.qrPanel.classList.add('hidden'));
+function renderPalette() {
+  paletteEl.innerHTML = '';
+
+  colors.forEach((colorObj) => {
+    const box = document.createElement('div');
+    box.className = 'color-box';
+    box.style.backgroundColor = colorObj.hex;
+
+    const rgb = hexToRgb(colorObj.hex);
+    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+    const code = document.createElement('span');
+    code.className = 'hex-code';
+    code.textContent = colorObj.hex;
+
+    const rgbEl = document.createElement('span');
+    rgbEl.className = 'rgb-code';
+    rgbEl.textContent = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+
+    const hslEl = document.createElement('span');
+    hslEl.className = 'hsl-code';
+    hslEl.textContent = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+
+    box.addEventListener('click', () => {
+      navigator.clipboard.writeText(colorObj.hex);
+      code.textContent = 'Copied!';
+      setTimeout(() => { code.textContent = colorObj.hex; }, 1000);
+    });
+
+    const lockBtn = document.createElement('button');
+    lockBtn.className = 'lock-btn';
+    lockBtn.textContent = colorObj.locked ? 'LOCKED' : 'LOCK';
+
+    lockBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      colorObj.locked = !colorObj.locked;
+      renderPalette();
+    });
+
+    box.appendChild(lockBtn);
+    box.appendChild(hslEl);
+    box.appendChild(rgbEl);
+    box.appendChild(code);
+    paletteEl.appendChild(box);
+  });
+
+  updateGradientOptions();
+}
+
+if (!loadFromUrl()) {
+  buildPalette();
+} else {
+  renderPalette();
+}
+
+document.getElementById('generate-btn').addEventListener('click', buildPalette);
 
 document.addEventListener('keydown', (e) => {
-  const tag = document.activeElement.tagName;
-  if ((e.code === 'Space' && tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') ||
-      (e.ctrlKey && e.key.toLowerCase() === 'g')) {
+  if (e.code === 'Space') {
     e.preventDefault();
-    generatePassword();
+    buildPalette();
   }
 });
 
-loadSettings();
-generatePassword();
+// ---------- DOWNLOAD AS PNG ----------
+document.getElementById('download-btn').addEventListener('click', () => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1000;
+  canvas.height = 400;
+  const ctx = canvas.getContext('2d');
+  const stripWidth = canvas.width / colors.length;
+
+  colors.forEach((colorObj, i) => {
+    ctx.fillStyle = colorObj.hex;
+    ctx.fillRect(i * stripWidth, 0, stripWidth, canvas.height);
+    ctx.fillStyle = '#000';
+    ctx.font = '20px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(colorObj.hex, i * stripWidth + stripWidth / 2, canvas.height - 20);
+  });
+
+  const link = document.createElement('a');
+  link.download = 'palette.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+// ---------- SAVE FAVORITES ----------
+function getFavorites() {
+  const stored = localStorage.getItem('favoritePalettes');
+  return stored ? JSON.parse(stored) : [];
+}
+
+function saveFavorites(favs) {
+  localStorage.setItem('favoritePalettes', JSON.stringify(favs));
+}
+
+function renderFavorites() {
+  favoritesEl.innerHTML = '';
+  const favs = getFavorites();
+
+  favs.forEach((palette, index) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'favorite-wrapper';
+
+    const strip = document.createElement('div');
+    strip.className = 'favorite-strip';
+    palette.forEach(hex => {
+      const swatch = document.createElement('div');
+      swatch.style.backgroundColor = hex;
+      strip.appendChild(swatch);
+    });
+    strip.addEventListener('click', () => {
+      colors = palette.map(hex => ({ hex, locked: false }));
+      renderPalette();
+    });
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-fav-btn';
+    removeBtn.textContent = 'X';
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const updated = getFavorites();
+      updated.splice(index, 1);
+      saveFavorites(updated);
+      renderFavorites();
+    });
+
+    wrapper.appendChild(strip);
+    wrapper.appendChild(removeBtn);
+    favoritesEl.appendChild(wrapper);
+  });
+}
+
+document.getElementById('save-btn').addEventListener('click', () => {
+  const favs = getFavorites();
+  favs.push(colors.map(c => c.hex));
+  saveFavorites(favs);
+  renderFavorites();
+});
+
+renderFavorites();
+
+// ---------- THEME TOGGLE ----------
+document.getElementById('theme-btn').addEventListener('click', () => {
+  document.body.classList.toggle('dark');
+});
+
+// ---------- SHARE PALETTE ----------
+document.getElementById('share-btn').addEventListener('click', () => {
+  const hexes = colors.map(c => c.hex.replace('#', '')).join('-');
+  const url = `${window.location.origin}${window.location.pathname}?colors=${hexes}`;
+  navigator.clipboard.writeText(url);
+  alert('Share link copied to clipboard!');
+});
+
+// ---------- GRADIENT GENERATOR ----------
+function updateGradientOptions() {
+  const prevA = gradA.value, prevB = gradB.value;
+  gradA.innerHTML = '';
+  gradB.innerHTML = '';
+
+  colors.forEach(c => {
+    const optA = document.createElement('option');
+    optA.value = c.hex; optA.textContent = c.hex;
+    gradA.appendChild(optA);
+
+    const optB = document.createElement('option');
+    optB.value = c.hex; optB.textContent = c.hex;
+    gradB.appendChild(optB);
+  });
+
+  gradA.value = colors.some(c => c.hex === prevA) ? prevA : colors[0].hex;
+  gradB.value = colors.some(c => c.hex === prevB) ? prevB : colors[1].hex;
+
+  updateGradientPreview();
+}
+
+function updateGradientPreview() {
+  const css = `linear-gradient(90deg, ${gradA.value}, ${gradB.value})`;
+  gradPreview.style.background = css;
+  gradCssOutput.textContent = `background: ${css};`;
+}
+
+gradA.addEventListener('change', updateGradientPreview);
+gradB.addEventListener('change', updateGradientPreview);
+
+document.getElementById('copy-gradient-btn').addEventListener('click', () => {
+  const css = `background: linear-gradient(90deg, ${gradA.value}, ${gradB.value});`;
+  navigator.clipboard.writeText(css);
+  alert('Gradient CSS copied!');
+});
