@@ -57,7 +57,7 @@ password-generator/
 ---
 
 ## 📸 Preview
-![Passward Generator Screenshot](pg.png)
+![Passward Generator Screenshot](pgn.png)
 
 ## 🚀 Live Demo
 
